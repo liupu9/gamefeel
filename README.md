@@ -19,6 +19,20 @@ You will need the [Haxe](https://haxe.org) compiler and [Heaps](https://heaps.io
 
 You should read the instructions on my GameBase project (https://github.com/deepnight/gameBase).
 
+# 本地项目操作步骤
+
+1. 下载项目代码 git clone git@github.com:liupu9/gamefeel.git
+2. 安装Haxe语言开发环境，安装完成后执行 haxe --version  当前版本为4.3.4
+3. 进入gamefeel目录后，执行命令 haxe setup.hxml ，用于下载项目依赖的版本
+4. 执行 haxe build.dev.hxml 或 haxe build.js.hxml 分别生成开发、JS环境在bin目录下 client.hl client.js
+
+## 调试步骤
+1. 安装VScode插件 Haxe 和 HashLink Debugger
+2. 下载HashLink工具，hl.exe放入Path中
+3. 选择 HL debug 后， 下断点， 按F5开始调试代码 hl bin/client.hl
+
+至此完成了本地项目的运行和调试的基本步骤，记录在此。
+
 # Credits
 
 Tileset: Inca by Kronbits (https://kronbits.itch.io/inca-game-assets)
