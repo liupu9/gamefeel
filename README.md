@@ -7,6 +7,8 @@ This prototype is not exactly an actual game but a tool to learn game-feel techn
 
 **It was designed to show the impact of small details on the overall quality and feeling of a game.**
 
+**它（本项目gamefeel）旨在展示小细节对游戏整体质量和感觉的影响。**
+
 You can enable or disable individual game features in this demo by pressing the START button (gamepad) or the ENTER key (keyboard).
 
 # Compiling
