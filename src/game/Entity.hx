@@ -1,7 +1,10 @@
+// 游戏实体
 class Entity {
-    public static var ALL : FixedArray<Entity> = new FixedArray(1024);
+    // 固定大小的实体数组
+	public static var ALL : FixedArray<Entity> = new FixedArray(1024);
     public static var GC : FixedArray<Entity> = new FixedArray(ALL.maxSize);
 
+	// 实体可以方便获取各种游戏内的数据、实例（共享），相当于封装了一些get方法。
 	// Various getters to access all important stuff easily
 	public var app(get,never) : App; inline function get_app() return App.ME;
 	public var game(get,never) : Game; inline function get_game() return Game.ME;
@@ -17,82 +20,111 @@ class Entity {
 	var utmod(get,never) : Float; inline function get_utmod() return Game.ME.utmod;
 	public var hud(get,never) : ui.Hud; inline function get_hud() return Game.ME.hud;
 
-	/** Cooldowns **/
+	/** Cooldowns 一般冷却 **/
 	public var cd : dn.Cooldown;
 
-	/** Cooldowns, unaffected by slowmo (ie. always in realtime) **/
+	/** Cooldowns, 不受敌方迟顿影响的冷却 unaffected by slowmo (ie. always in realtime) **/
 	public var ucd : dn.Cooldown;
 
-	/** Temporary gameplay affects **/
+	/** 临时影响 Temporary gameplay affects **/
 	var affects : Map<Affect,Float> = new Map();
 
-	/** State machine. Value should only be changed using `startState(v)` **/
+	/** 状态机 State machine. Value should only be changed using `startState(v)` **/
 	public var state(default,null) : State;
 
-	/** Unique identifier **/
+	/** 唯一ID Unique identifier **/
 	public var uid(default,null) : Int;
 
-	/** Grid X coordinate **/
+	/** 格子坐标X Grid X coordinate **/
     public var cx = 0;
-	/** Grid Y coordinate **/
+	/** 格子坐标Y Grid Y coordinate **/
     public var cy = 0;
-	/** Sub-grid X coordinate (from 0.0 to 1.0) **/
+	/** 一个格子内坐标X Sub-grid X coordinate (from 0.0 to 1.0) **/
     public var xr = 0.5;
-	/** Sub-grid Y coordinate (from 0.0 to 1.0) **/
+	/** 一个格子内坐标Y Sub-grid Y coordinate (from 0.0 to 1.0) **/
     public var yr = 1.0;
 
+	/**
+		是否落地？判断条件:
+		1. yr = 1
+		2. 判断是否碰撞（cx, cy+1）
+		3. 向下的速度 vBase.dy > 0
+	 **/
 	public var onGround(get,never) : Bool;
 		inline function get_onGround() return yr==1 && level.hasCollision(cx,cy+1) && vBase.dy>=0;
 
+	/**
+		多个速度的数组，用于计算最终的速度值。
+	**/
 	var allVelocities : VelocityArray;
 
-	/** Base X/Y velocity of the Entity **/
+	/** “用户控制”的基本速度 Base X/Y velocity of the Entity **/
 	public var vBase : Velocity;
-	/** "External bump" velocity. It is used to push the Entity in some direction, independently of the "user-controlled" base velocity. **/
+	/**
+		“外部碰撞”速度。它用于将实体推向某个方向，独立于“用户控制”的基本速度
+		"External bump" velocity. It is used to push the Entity in some direction, independently of the "user-controlled" base velocity. 
+	**/
 	public var vBump : Velocity;
 
-	/** Last known X position of the attach point (in pixels), at the beginning of the latest fixedUpdate **/
+	/**
+		在最近一次固定更新点（fixedUpdate）的开始处，附加点的最后已知X位置(以像素为单位)
+		Last known X position of the attach point (in pixels), at the beginning of the latest fixedUpdate
+	**/
 	var lastFixedUpdateX = 0.;
-	/** Last known Y position of the attach point (in pixels), at the beginning of the latest fixedUpdate **/
+	/** 
+		在最近一次固定更新点（fixedUpdate）的开始处，附加点的最后已知Y位置(以像素为单位)
+		Last known Y position of the attach point (in pixels), at the beginning of the latest fixedUpdate
+	**/
 	var lastFixedUpdateY = 0.;
 
-	/** If TRUE, the sprite display coordinates will be an interpolation between the last known position and the current one. This is useful if the gameplay happens in the `fixedUpdate()` (so at 30 FPS), but you still want the sprite position to move smoothly at 60 FPS or more. **/
+	/**
+		精灵插值位置开关：如果为TRUE，则精灵显示坐标将是最后一个已知位置和当前位置之间的插值。
+		If TRUE, the sprite display coordinates will be an interpolation between the last known position and the current one.
+		This is useful if the gameplay happens in the `fixedUpdate()` (so at 30 FPS), but you still want the sprite position 
+		to move smoothly at 60 FPS or more.
+	**/
 	var interpolateSprPos = true;
 
+	/**
+		掉落开始的Y坐标值（像素）
+	**/
 	var fallStartPxY = 0.;
+	/**
+		是否和墙发生碰撞？
+	**/
 	var collidesWithWalls = true;
 
-	/** Total of all X velocities **/
+	/** X方向的总速度值 Total of all X velocities **/
 	public var dxTotal(get,never) : Float; inline function get_dxTotal() return allVelocities.getSumX();
-	/** Total of all Y velocities **/
+	/** Y方向的总速度值 Total of all Y velocities **/
 	public var dyTotal(get,never) : Float; inline function get_dyTotal() return allVelocities.getSumY();
 
-	/** Pixel width of entity **/
+	/** 实体的像素宽度 Pixel width of entity **/
 	public var wid(default,set) : Float = Const.GRID;
 		inline function set_wid(v) { invalidateDebugBounds=true;  return wid=v; }
 	public var iwid(get,set) : Int;
 		inline function get_iwid() return M.round(wid);
 		inline function set_iwid(v:Int) { invalidateDebugBounds=true; wid=v; return iwid; }
 
-	/** Pixel height of entity **/
+	/** 实体的像素高度 Pixel height of entity **/
 	public var hei(default,set) : Float = Const.GRID;
 		inline function set_hei(v) { invalidateDebugBounds=true;  return hei=v; }
 	public var ihei(get,set) : Int;
 		inline function get_ihei() return M.round(hei);
 		inline function set_ihei(v:Int) { invalidateDebugBounds=true; hei=v; return ihei; }
 
-	/** Inner radius in pixels (ie. smallest value between width/height, then divided by 2) **/
+	/** 内部半径（像素值）：最小边长的一半 Inner radius in pixels (ie. smallest value between width/height, then divided by 2) **/
 	public var innerRadius(get,never) : Float;
 		inline function get_innerRadius() return M.fmin(wid,hei)*0.5;
 
-	/** "Large" radius in pixels (ie. biggest value between width/height, then divided by 2) **/
+	/** 大半径（像素值）：最大边长的一半 "Large" radius in pixels (ie. biggest value between width/height, then divided by 2) **/
 	public var largeRadius(get,never) : Float;
 		inline function get_largeRadius() return M.fmax(wid,hei)*0.5;
 
-	/** Horizontal direction, can only be -1 or 1 **/
+	/** 水平方向 只能为-1或1 Horizontal direction, can only be -1 or 1 **/
 	public var dir(default,set) = 1;
 
-	/** Current sprite X **/
+	/** 精灵当前X坐标（计算插值） Current sprite X **/
 	public var sprX(get,never) : Float;
 		inline function get_sprX() {
 			return interpolateSprPos
@@ -100,7 +132,7 @@ class Entity {
 				: (cx+xr)*Const.GRID;
 		}
 
-	/** Current sprite Y **/
+	/** 精灵当前Y坐标（计算插值） Current sprite Y **/
 	public var sprY(get,never) : Float;
 		inline function get_sprY() {
 			return interpolateSprPos
@@ -108,69 +140,74 @@ class Entity {
 				: (cy+yr)*Const.GRID;
 		}
 
-	/** Sprite X scaling **/
+	/** 精灵X坐标缩放 Sprite X scaling **/
 	public var sprScaleX = 1.0;
-	/** Sprite Y scaling **/
+	/** 精灵Y坐标缩放 Sprite Y scaling **/
 	public var sprScaleY = 1.0;
 
-	/** Sprite X squash & stretch scaling, which automatically comes back to 1 after a few frames **/
+	/** 精灵X坐标 压缩和拉伸缩放，在几帧后自动返回1.0 
+		Sprite X squash & stretch scaling, which automatically comes back to 1 after a few frames **/
 	var sprSquashX = 1.0;
-	/** Sprite Y squash & stretch scaling, which automatically comes back to 1 after a few frames **/
+	/** 精灵Y坐标 压缩和拉伸缩放，在几帧后自动返回1.0
+		Sprite Y squash & stretch scaling, which automatically comes back to 1 after a few frames **/
 	var sprSquashY = 1.0;
 
+	/** 精灵X坐标补偿 **/
 	var sprOffsetX = 0.;
 
-	/** Entity visibility **/
+	/** 实体是否可见？ Entity visibility **/
 	public var entityVisible = true;
 
-	/** Current hit points **/
+	/** 状态：当前生命值 Current hit points **/
 	public var life(default,null) : dn.struct.Stat<Int>;
-	/** Last source of damage if it was an Entity **/
+	/** 最近一次伤害来源（实体） Last source of damage if it was an Entity **/
 	public var lastDmgSource(default,null) : Null<Entity>;
 
-	/** Horizontal direction (left=-1 or right=1): from "last source of damage" to "this" **/
+	/** 最近一次攻击源的水平方向（攻击源实体 -> 自身实体）
+		Horizontal direction (left=-1 or right=1): from "last source of damage" to "this" **/
 	public var lastHitDirFromSource(get,never) : Int;
 	inline function get_lastHitDirFromSource() return lastDmgSource==null ? -dir : -dirTo(lastDmgSource);
 
-	/** Horizontal direction (left=-1 or right=1): from "this" to "last source of damage" **/
+	/** 最近一次水平攻击方向 (自身实体 -> 被攻击实体)
+		Horizontal direction (left=-1 or right=1): from "this" to "last source of damage" **/
 	public var lastHitDirToSource(get,never) : Int;
 		inline function get_lastHitDirToSource() return lastDmgSource==null ? dir : dirTo(lastDmgSource);
 
-	/** Main entity HSprite instance **/
+	/** 主实体的精灵实例 Main entity HSprite instance **/
     public var spr : HSprite;
 
-	/** Color vector transformation applied to sprite **/
+	/** 精灵的颜色向量变化 Color vector transformation applied to sprite **/
 	public var baseColor : h3d.Vector;
 
-	/** Color matrix transformation applied to sprite **/
+	/** 精灵的颜色矩阵变化 Color matrix transformation applied to sprite **/
 	public var colorMatrix : h3d.Matrix;
 
-	// Animated blink color on damage hit
+	// 受到伤害时的动画闪烁颜色 Animated blink color on damage hit
 	var blinkColor : h3d.Vector;
 
-	/** Sprite X shake power **/
+	/** 精灵X震动力 Sprite X shake power **/
 	var shakePowX = 0.;
-	/** Sprite Y shake power **/
+	/** 精灵Y震动力 Sprite Y shake power **/
 	var shakePowY = 0.;
 
-	// Debug stuff
+	// 调试用 Debug stuff
 	var debugLabel : Null<h2d.Text>;
 	var debugBounds : Null<h2d.Graphics>;
 	var invalidateDebugBounds = false;
-
+	// 弹出xx
 	var popTf : Null<h2d.Text>;
 
-	/** Defines X alignment of entity at its attach point (0 to 1.0) **/
+	/** 定义实体在其附加点处的X对齐方式 Defines X alignment of entity at its attach point (0 to 1.0) **/
 	public var pivotX(default,set) : Float = 0.5;
-	/** Defines Y alignment of entity at its attach point (0 to 1.0) **/
+	/** 定义实体在其附加点处的Y对齐方式 Defines Y alignment of entity at its attach point (0 to 1.0) **/
 	public var pivotY(default,set) : Float = 1;
 
-	/** Entity attach X pixel coordinate **/
+	/** 实体附加点X坐标 Entity attach X pixel coordinate **/
 	public var attachX(get,never) : Float; inline function get_attachX() return (cx+xr)*Const.GRID;
-	/** Entity attach Y pixel coordinate **/
+	/** 实体附加点Y坐标 Entity attach Y pixel coordinate **/
 	public var attachY(get,never) : Float; inline function get_attachY() return (cy+yr)*Const.GRID;
 
-	// Various coordinates getters, for easier gameplay coding
+	// 各种获取坐标的getter方法，为了使游戏玩法更好编码实现 Various coordinates getters, for easier gameplay coding
 
 	/** Left pixel coordinate of the bounding box **/
 	public var left(get,never) : Float; inline function get_left() return attachX + (0-pivotX) * wid;
@@ -199,6 +236,7 @@ class Entity {
 	/** attachY value during last frame **/
 	public var prevFrameAttachY(default,null) : Float = -Const.INFINITE;
 
+	/** 基于可回收对象池的受控动作 **/
 	var actions : RecyclablePool<tools.ChargedAction>;
 
 
@@ -207,7 +245,7 @@ class Entity {
 	**/
     public function new(x:Int, y:Int) {
         uid = Const.makeUniqueId();
-		ALL.push(this);
+		ALL.push(this); // 加入实体数组
 
 		cd = new dn.Cooldown(Const.FPS);
 		ucd = new dn.Cooldown(Const.FPS);
@@ -300,7 +338,7 @@ class Entity {
 		return !destroyed && life.v>0;
 	}
 
-	/** Move entity to grid coordinates **/
+	/** 移动实体到某个格子坐标 Move entity to grid coordinates **/
 	public function setPosCase(x:Int, y:Int) {
 		cx = x;
 		cy = y;
@@ -309,7 +347,7 @@ class Entity {
 		onPosManuallyChangedBoth();
 	}
 
-	/** Move entity to pixel coordinates **/
+	/** 移动实体到某个像素位置（精确） Move entity to pixel coordinates **/
 	public function setPosPixel(x:Float, y:Float) {
 		cx = Std.int(x/Const.GRID);
 		cy = Std.int(y/Const.GRID);
@@ -318,7 +356,8 @@ class Entity {
 		onPosManuallyChangedBoth();
 	}
 
-	/** Should be called when you manually (ie. ignoring physics) modify both X & Y entity coordinates **/
+	/** 当你手动修改（不考虑物理）XY坐标时，需要调用这个函数。
+		Should be called when you manually (ie. ignoring physics) modify both X & Y entity coordinates **/
 	function onPosManuallyChangedBoth() {
 		if( M.dist(attachX,attachY,prevFrameAttachX,prevFrameAttachY) > Const.GRID*2 ) {
 			prevFrameAttachX = attachX;

@@ -9,7 +9,9 @@ class Const {
 		static inline function get_FPS() return Std.int( hxd.System.getDefaultFrameRate() );
 
 	/**
-		"Fixed" updates framerate. 30fps is a good value here, as it's almost guaranteed to work on any decent setup, and it's more than enough to run any gameplay related physics.
+		固定帧率，30FPS是一个权衡各种条件的优化值。
+		"Fixed" updates framerate. 30fps is a good value here, as it's almost guaranteed to work on
+		any decent setup, and it's more than enough to run any gameplay related physics.
 	**/
 	public static final FIXED_UPDATE_FPS = 30;
 
