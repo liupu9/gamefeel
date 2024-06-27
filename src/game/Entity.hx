@@ -762,6 +762,7 @@ class Entity {
 
 
 	/**
+		“帧的开始”循环，在任何其他实体更新循环之前调用
 		"Beginning of the frame" loop, called before any other Entity update loop
 	**/
     public function preUpdate() {
@@ -784,6 +785,7 @@ class Entity {
     }
 
 	/**
+		后更新循环，保证在任何预更新/更新之后发生。这通常是渲染和显示更新的地方
 		Post-update loop, which is guaranteed to happen AFTER any preUpdate/update. This is usually where render and display is updated
 	**/
     public function postUpdate() {
@@ -843,7 +845,7 @@ class Entity {
 	}
 
 	/**
-		Loop that runs at the absolute end of the frame
+		在帧的绝对末端运行的循环 Loop that runs at the absolute end of the frame
 	**/
 	public function finalUpdate() {
 		prevFrameAttachX = attachX;
@@ -851,95 +853,110 @@ class Entity {
 	}
 
 
+	/**
+		将当前附加点的位置坐标 保存到 上一个固定更新坐标
+	**/
 	final function updateLastFixedUpdatePos() {
 		lastFixedUpdateX = attachX;
 		lastFixedUpdateY = attachY;
 	}
 
-
+	/** 获取重力加速度 **/
 	function getGravityMul() return 1.0;
 
-
+	/** 落地行为，由子类根据实际情况实现，参数为掉落格子数 **/
 	function onLand(cHei:Float) {}
 
-	/** Called at the beginning of each X movement step **/
+	/**
+		在每个X移动步骤开始前调用
+		Called at the beginning of each X movement step
+	**/
 	function onPreStepX() {
+		// 如果需要检测碰撞到墙
 		if( collidesWithWalls ) {
-			// Right collision
+			// Right collision 向右碰撞：水平偏移>0.8 且 右侧格子为碰撞格子
 			if( xr>0.8 && level.hasCollision(cx+1,cy) )
-				xr = 0.8;
+				xr = 0.8; // 定格到这偏移量，不再继续靠近
 
-			// Left collision
+			// Left collision 向左碰撞：水平偏移<0.2 且 左侧格子为碰撞格子
 			if( xr<0.2 && level.hasCollision(cx-1,cy) )
-				xr = 0.2;
+				xr = 0.2; // 定格到这偏移量，不再继续靠近
 		}
 	}
 
-	/** Called at the beginning of each Y movement step **/
+	/**
+		在每个Y移动步骤开始前调用
+		Called at the beginning of each Y movement step
+	**/
 	function onPreStepY() {
+		// 如果需要检测碰撞到墙
 		if( collidesWithWalls ) {
-			// Land on ground
+			// Land on ground 落地碰撞：竖直偏移>=1 且 下侧格子为碰撞数据
 			if( yr>=1 && level.hasCollision(cx,cy+1) ) {
 				onLand( (attachY-fallStartPxY)/Const.GRID );
-				vBase.dy = 0;
-				yr = 1;
+				vBase.dy = 0; // 基本速度的dy设置为0
+				yr = 1; // 竖直偏移设置为1
 				onPosManuallyChangedY();
 				fallStartPxY = attachY;
 			}
 
-			// Ceiling collision
+			// Ceiling collision 顶部碰撞：竖直偏移<0.6 且 上侧格子为碰撞格子
 			if( yr<0.6 && level.hasCollision(cx,cy-1) ) {
-				vBase.dy *= 0.5;
-				yr = 0.6;
+				vBase.dy *= 0.5; // 基本速度的dy降速为之前的0.5倍
+				yr = 0.6; // 竖直偏移固定为0.6不动
 			}
 		}
 	}
 
 
 	/**
-		Main loop, but it only runs at a "guaranteed" 30 fps (so it might not be called during some frames, if the app runs at 60fps). This is usually where most gameplay elements affecting physics should occur, to ensure these will not depend on FPS at all.
+		固定更新（帧）
+		Main loop, but it only runs at a "guaranteed" 30 fps (so it might not be called during some frames, if the app runs at 60fps).
+		This is usually where most gameplay elements affecting physics should occur, to ensure these will not depend on FPS at all.
 	**/
 	public function fixedUpdate() {
 		updateLastFixedUpdatePos();
 
-
+		// 如果未落地
 		if( !onGround )
-			vBase.dy += 0.05*getGravityMul();
+			vBase.dy += 0.05*getGravityMul(); // 基础速度每帧增加 0.05 ，相当于每秒 1.5格
 
+		// 落地 或 Y方向速度<=0
 		if( onGround || dyTotal<=0 )
 			fallStartPxY = attachY;
 
 		/*
-			Stepping: any movement greater than 33% of grid size (ie. 0.33) will increase the number of `steps` here. These steps will break down the full movement into smaller iterations to avoid jumping over grid collisions.
+			步进:任何大于网格尺寸33%的移动(0.33)会增加这里的“步骤”数。这些步骤将把整个移动分解成更小的迭代，以避免跳过网格碰撞。
+			这里为什么采用0.33这个值？
+			Stepping: any movement greater than 33% of grid size (ie. 0.33) will increase the number of `steps` here.
+			These steps will break down the full movement into smaller iterations to avoid jumping over grid collisions.
 		*/
 		var steps = M.ceil( ( M.fabs(dxTotal) + M.fabs(dyTotal) ) / 0.33 );
 		if( steps>0 ) {
 			var n = 0;
+			// 循环N次处理
 			while ( n<steps ) {
-				// X movement
+				// X movement X轴分解为N分之一
 				xr += dxTotal / steps;
 
-				if( dxTotal!=0 )
-					onPreStepX(); // <---- Add X collisions checks and physics in here
+				if( dxTotal!=0 ) onPreStepX(); // <---- Add X collisions checks and physics in here 碰撞检测和物理
 
-				while( xr>1 ) { xr--; cx++; }
+				while( xr>1 ) { xr--; cx++; } // 同步格子
 				while( xr<0 ) { xr++; cx--; }
 
-
-				// Y movement
+				// Y movement Y轴分解为N分之一
 				yr += dyTotal / steps;
 
-				if( dyTotal!=0 )
-					onPreStepY(); // <---- Add Y collisions checks and physics in here
+				if( dyTotal!=0 ) onPreStepY(); // <---- Add Y collisions checks and physics in here 碰撞检测和物理
 
-				while( yr>1 ) { yr--; cy++; }
+				while( yr>1 ) { yr--; cy++; } // 同步格子
 				while( yr<0 ) { yr++; cy--; }
 
 				n++;
 			}
 		}
 
-		// Update velocities
+		// Update velocities 更新速度容器组
 		for(v in allVelocities)
 			v.fixedUpdate();
 	}

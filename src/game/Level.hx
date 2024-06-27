@@ -1,3 +1,6 @@
+/**
+	关卡类
+**/
 class Level extends GameChildProcess {
 	public var options(get,never) : Options; inline function get_options() return App.ME.options;
 
@@ -85,7 +88,10 @@ class Level extends GameChildProcess {
 		invalidated = true;
 	}
 
-	/** Return TRUE if "Collisions" layer contains a collision value **/
+	/**
+		如果“碰撞”层包含碰撞值则返回TRUE
+		Return TRUE if "Collisions" layer contains a collision value
+	**/
 	public inline function hasCollision(cx,cy) : Bool {
 		return !isValid(cx,cy) ? true : marks.has(M_Coll_Wall, cx,cy);
 	}
