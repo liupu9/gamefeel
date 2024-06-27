@@ -48,14 +48,21 @@ class Const {
 
 	public static var BG_COLOR = new Col(0x151C23);
 
-	/** Game layers indexes **/
+	/** 游戏分层索引 Game layers indexes **/
 	static var _inc = 0;
+	/** 背景层 **/
 	public static var DP_BG = _inc++;
+	/** 特效层 **/
 	public static var DP_FX_BG = _inc++;
+	/** 主分层 **/
 	public static var DP_MAIN = _inc++;
+	/** 前分层 **/
 	public static var DP_FRONT = _inc++;
+	/** 特效前分层 **/
 	public static var DP_FX_FRONT = _inc++;
+	/** 最上层 **/
 	public static var DP_TOP = _inc++;
+	/** UI层 **/
 	public static var DP_UI = _inc++;
 
 #end

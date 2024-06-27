@@ -255,11 +255,14 @@ class Entity {
 		state = Normal;
 		actions = new RecyclablePool(15, ()->new tools.ChargedAction());
 
+		// 速度数组容器大小：15
 		allVelocities = new VelocityArray(15);
 		vBase = registerNewVelocity(0.9);
 		vBump = registerNewVelocity(0.93);
 
+		// 精灵
         spr = new HSprite(Assets.tiles);
+		// 加入显示容器中
 		Game.ME.scroller.add(spr, Const.DP_MAIN);
 		spr.colorAdd = new h3d.Vector();
 		baseColor = new h3d.Vector();
@@ -271,7 +274,7 @@ class Entity {
 			enableDebugBounds();
     }
 
-
+	/** 注册新的速度，附带摩擦参数 **/
 	public function registerNewVelocity(frict:Float) : Velocity {
 		var v = Velocity.createFrict(frict);
 		allVelocities.push(v);
@@ -279,7 +282,7 @@ class Entity {
 	}
 
 
-	/** Remove sprite from display context. Only do that if you're 100% sure your entity won't need the `spr` instance itself. **/
+	/** 从显示上下文删除精灵。 Remove sprite from display context. Only do that if you're 100% sure your entity won't need the `spr` instance itself. **/
 	function noSprite() {
 		spr.setEmptyTexture();
 		spr.remove();
@@ -359,6 +362,7 @@ class Entity {
 	/** 当你手动修改（不考虑物理）XY坐标时，需要调用这个函数。
 		Should be called when you manually (ie. ignoring physics) modify both X & Y entity coordinates **/
 	function onPosManuallyChangedBoth() {
+		// 当(attachX, attachY) (prevFrameAttachX, prevFrameAttachY) 两个点之间的距离 大于 两个格子的距离
 		if( M.dist(attachX,attachY,prevFrameAttachX,prevFrameAttachY) > Const.GRID*2 ) {
 			prevFrameAttachX = attachX;
 			prevFrameAttachY = attachY;
@@ -368,6 +372,7 @@ class Entity {
 
 	/** Should be called when you manually (ie. ignoring physics) modify entity X coordinate **/
 	function onPosManuallyChangedX() {
+		// 当X坐标移动的距离 大于 两个格子的距离
 		if( M.fabs(attachX-prevFrameAttachX) > Const.GRID*2 )
 			prevFrameAttachX = attachX;
 		lastFixedUpdateX = attachX;
@@ -375,6 +380,7 @@ class Entity {
 
 	/** Should be called when you manually (ie. ignoring physics) modify entity Y coordinate **/
 	function onPosManuallyChangedY() {
+		// 当Y坐标移动的距离 大于 两个格子的距离
 		if( M.fabs(attachY-prevFrameAttachY) > Const.GRID*2 )
 			prevFrameAttachY = attachY;
 		lastFixedUpdateY = attachY;
@@ -561,7 +567,7 @@ class Entity {
 		#end
 	}
 
-	/** Hide entity debug bounds **/
+	/** 隐藏实体调试框 Hide entity debug bounds **/
 	public function disableDebugBounds() {
 		if( debugBounds!=null ) {
 			debugBounds.remove();
@@ -614,7 +620,7 @@ class Entity {
 			a.onProgress = onProgress;
 	}
 
-	/** If id is null, return TRUE if any action is charging. If id is provided, return TRUE if this specific action is charging nokw. **/
+	/** If id is null, return TRUE if any action is charging. If id is provided, return TRUE if this specific action is charging now. **/
 	public function isChargingAction(?id:ChargedActionId) {
 		if( !isAlive() )
 			return false;

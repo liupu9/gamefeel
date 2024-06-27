@@ -15,7 +15,7 @@ class Game extends AppChildProcess {
 
 	public var hero : en.Hero;
 
-	/** Container of all visual game objects. Ths wrapper is moved around by Camera. **/
+	/** 所有可视的游戏对象容器，卷轴由摄像机移动控制。 Container of all visual game objects. Ths wrapper is moved around by Camera. **/
 	public var scroller : h2d.Layers;
 
 	/** Level data **/
