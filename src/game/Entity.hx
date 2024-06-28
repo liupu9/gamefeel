@@ -789,60 +789,88 @@ class Entity {
 		Post-update loop, which is guaranteed to happen AFTER any preUpdate/update. This is usually where render and display is updated
 	**/
     public function postUpdate() {
-		spr.x = sprX + sprOffsetX;
-		spr.y = sprY;
-        spr.scaleX = dir*sprScaleX * sprSquashX;
+        // 更新精灵的x坐标，考虑到偏移量
+        spr.x = sprX + sprOffsetX;
+        // 更新精灵的y坐标
+        spr.y = sprY;   
+        // 根据方向、缩放比例和挤压因子更新精灵的x轴缩放
+        spr.scaleX = dir * sprScaleX * sprSquashX;
+        // 更新精灵的y轴缩放
         spr.scaleY = sprScaleY * sprSquashY;
-		spr.visible = entityVisible;
+        // 设置精灵的可见性
+        spr.visible = entityVisible;
 
-		sprSquashX += (1-sprSquashX) * M.fmin(1, 0.2*tmod);
-		sprSquashY += (1-sprSquashY) * M.fmin(1, 0.2*tmod);
+        // 基于tmod更新sprSquashX，模拟弹性效果
+        sprSquashX += (1-sprSquashX) * M.fmin(1, 0.2*tmod);
+        // 基于tmod更新sprSquashY，模拟弹性效果
+        sprSquashY += (1-sprSquashY) * M.fmin(1, 0.2*tmod);
 
-		sprOffsetX *= Math.pow(0.8,tmod);
+        // 根据tmod减少sprOffsetX，可能用于模拟衰减效果
+        sprOffsetX *= Math.pow(0.8,tmod);
 
-		if( cd.has("shaking") ) {
-			spr.x += Math.cos(ftime*1.1)*shakePowX * cd.getRatio("shaking");
-			spr.y += Math.sin(0.3+ftime*1.7)*shakePowY * cd.getRatio("shaking");
-		}
+        // 检查是否有“抖动”（shaking）效果
+        if( cd.has("shaking") ) {
+            // 添加基于时间的x轴抖动效果
+            spr.x += Math.cos(ftime*1.1)*shakePowX * cd.getRatio("shaking");
+            // 添加基于时间的y轴抖动效果
+            spr.y += Math.sin(0.3+ftime*1.7)*shakePowY * cd.getRatio("shaking");
+        }
 
-		// Blink
-		if( !cd.has("keepBlink") ) {
-			blinkColor.r*=Math.pow(0.60, tmod);
-			blinkColor.g*=Math.pow(0.55, tmod);
-			blinkColor.b*=Math.pow(0.50, tmod);
-		}
+        // 处理闪烁效果（Blink）
+        if(!cd.has("keepBlink") ) {
+            // 基于时间减少红色分量，以实现淡出效果
+            blinkColor.r*=Math.pow(0.60, tmod);
+            // 基于时间减少绿色分量
+            blinkColor.g*=Math.pow(0.55, tmod);
+            // 基于时间减少蓝色分量
+            blinkColor.b*=Math.pow(0.50, tmod);
+        }
 
-		// Color adds
-		spr.colorAdd.load(baseColor);
-		spr.colorAdd.r += blinkColor.r;
-		spr.colorAdd.g += blinkColor.g;
-		spr.colorAdd.b += blinkColor.b;
+        // 颜色叠加处理
+        // 加载基本颜色到精灵的颜色叠加属性
+        spr.colorAdd.load(baseColor);
+        // 根据闪烁颜色值更新颜色叠加的红色分量
+        spr.colorAdd.r += blinkColor.r;
+        // 根据闪烁颜色值更新颜色叠加的绿色分量
+        spr.colorAdd.g += blinkColor.g;
+        // 根据闪烁颜色值更新颜色叠加的蓝色分量
+        spr.colorAdd.b += blinkColor.b;
 
-		// Debug label
-		if( debugLabel!=null ) {
-			debugLabel.x = Std.int(attachX - debugLabel.textWidth*0.5);
-			debugLabel.y = Std.int(attachY+1);
-		}
+        // 调试标签处理
+        if( debugLabel!=null ) {
+            // 将调试标签水平居中放置在attachX位置
+            debugLabel.x = Std.int(attachX - debugLabel.textWidth*0.5);
+            // 将调试标签放置在attachY+1位置
+            debugLabel.y = Std.int(attachY+1);
+        }
 
-		// Debug bounds
-		if( debugBounds!=null ) {
-			if( invalidateDebugBounds ) {
-				invalidateDebugBounds = false;
-				renderDebugBounds();
-			}
-			debugBounds.x = Std.int(attachX);
-			debugBounds.y = Std.int(attachY);
-		}
+        // 调试边界处理
+        if( debugBounds!=null ) {
+            // 如果需要更新调试边界
+            if( invalidateDebugBounds ) {
+                // 重置更新标志
+                invalidateDebugBounds = false;
+                // 渲染调试边界
+                renderDebugBounds();
+            }
+            // 设置调试边界的x坐标
+            debugBounds.x = Std.int(attachX);
+            // 设置调试边界的y坐标
+            debugBounds.y = Std.int(attachY);
+        }
 
-		// Fade text pop
-		if( popTf!=null && popTf.visible && !cd.has("keepPop") ) {
-			popTf.alpha -= 0.05*tmod;
-			if( popTf.alpha<=0 ) {
-				popTf.visible = false;
-				popTf.alpha = 1;
-			}
-		}
-	}
+        // 淡出文本弹出效果处理
+        if( popTf!=null && popTf.visible && !cd.has("keepPop") ) {
+            // 根据时间减少弹出文本的透明度
+            popTf.alpha -= 0.05*tmod;
+            // 如果透明度小于等于0，则隐藏文本
+            if( popTf.alpha<=0 ) {
+                popTf.visible = false;
+                // 将透明度重置为1，准备下次显示
+                popTf.alpha = 1;
+            }
+        }
+    }
 
 	/**
 		在帧的绝对末端运行的循环 Loop that runs at the absolute end of the frame
